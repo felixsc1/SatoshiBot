@@ -19,7 +19,7 @@
 
 ## Possible improvements
 
-- As this was just a quick test, I used very small local models (llama3.2:1b as LLM, granite-embedding:30m for embeddings) and a small FAISS database.
+- As this was just a quick test, I used very small local models (llama3.2:1b as LLM, granite-embedding:30m for embeddings) and a small FAISS database. Nevertheless, the RAG (retrieval augmented generation) workflow implemented in LangChain here is state of the art.
 - A larger model or pinecone as a vector database would be better for production.
 
 ## Known Issues
