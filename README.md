@@ -6,6 +6,17 @@
 - Create a vector database of the emails, forum posts, and quotes.
 - Use a LLM to answer questions about Satoshi Nakamoto, that focuses on the context of the archive material, providing links to the sources.
 
+## Motivation
+The goal was to deepen my expertise in LangChain, a cutting edge AI framework, and explore the power of local large language models combined with Retrieval-Augmented Generation (RAG).
+I chose Satoshi Nakamoto’s original posts to ensure accurate, source-driven insights into Bitcoin’s origins, minimizing AI hallucinations and biased third-party interpretations by grounding responses in primary data.
+
+## Tech Stack
+- Beautiful Soup (web scraping)
+- LangChain (AI framework)
+- Ollama (with Llama 3.2 Model)
+- FAISS vectorstore
+- Streamlit (Frontend)
+
 ## How to run
 
 - Install the dependencies in the requirements.txt file `pip install -r requirements.txt`
