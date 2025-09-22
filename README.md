@@ -6,12 +6,25 @@
 - Create a vector database of the emails, forum posts, and quotes.
 - Use a LLM to answer questions about Satoshi Nakamoto, that focuses on the context of the archive material, providing links to the sources.
 
+## Motivation
+
+The goal was to deepen my expertise in LangChain, a cutting edge AI framework, and explore the power of local large language models combined with Retrieval-Augmented Generation (RAG).
+I chose Satoshi Nakamoto’s original posts to ensure accurate, source-driven insights into Bitcoin’s origins, minimizing AI hallucinations and biased third-party interpretations by grounding responses in primary data.
+
+## Tech Stack
+
+- Beautiful Soup (web scraping)
+- LangChain (AI framework)
+- Ollama (with Llama 3.2 Model)
+- FAISS vectorstore
+- Streamlit (Frontend)
+
 ## How to run
 
 - Install the dependencies in the requirements.txt file `pip install -r requirements.txt`
 - Install Ollama and pull the models of your choice, e.g. `ollama pull llama3.2:1b` and `ollama pull granite-embedding:30m`
-- Run the scraping.py file to scrape the archive of the Satoshi Nakamoto Institute. 
-- Run the ingestion.py file to create the vector database and use the LLM to answer questions. Here we use FAISS to store the database locally. (Update: use the `ingestion.py --raw-only` flag to skip chunking/embedding steps and instead create a folder with raw .txt files. This is just to generate a test dataset for DeepEval or other tools.)
+- Run the `scraping.py` file to scrape the archive of the Satoshi Nakamoto Institute.
+- Run the `ingestion.py` file to create the vector database and use the LLM to answer questions. Here we use FAISS to store the database locally. Tip: use the `ingestion.py --raw-only` flag to skip chunking/embedding steps and instead create a folder with raw .txt files (useful for generating test datasets).
 - Run the main.py file to run the Streamlit app `streamlit run main.py`
 - Start chatting with the bot!
 
@@ -19,7 +32,7 @@
 
 ## Possible improvements
 
-- As this was just a quick test, I used very small local models (llama3.2:1b as LLM, granite-embedding:30m for embeddings) and a small FAISS database.
+- As this was just a quick test, I used very small local models (llama3.2:1b as LLM, granite-embedding:30m for embeddings) and a small FAISS database. Nevertheless, the RAG (retrieval augmented generation) workflow implemented in LangChain here is state of the art.
 - A larger model or pinecone as a vector database would be better for production.
 
 ## Known Issues
