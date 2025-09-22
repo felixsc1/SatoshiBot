@@ -10,8 +10,8 @@
 
 - Install the dependencies in the requirements.txt file `pip install -r requirements.txt`
 - Install Ollama and pull the models of your choice, e.g. `ollama pull llama3.2:1b` and `ollama pull granite-embedding:30m`
-- Run the scraper.py file to scrape the archive of the Satoshi Nakamoto Institute
-- Run the core.py file to create the vector database and use the LLM to answer questions. Here we use FAISS to store the database locally.
+- Run the scraping.py file to scrape the archive of the Satoshi Nakamoto Institute. 
+- Run the ingestion.py file to create the vector database and use the LLM to answer questions. Here we use FAISS to store the database locally. (Update: use the `ingestion.py --raw-only` flag to skip chunking/embedding steps and instead create a folder with raw .txt files. This is just to generate a test dataset for DeepEval or other tools.)
 - Run the main.py file to run the Streamlit app `streamlit run main.py`
 - Start chatting with the bot!
 

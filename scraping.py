@@ -237,20 +237,23 @@ class SatoshiScraper:
             
             # Create a clean HTML document with just the extracted content
             clean_html = f"""<!DOCTYPE html>
-<html lang="en">
+<html lang=\"en\">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <meta name=\"source-url\" content=\"{url}\">
     <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
         .email-header, .post-header {{ background-color: #f5f5f5; padding: 10px; margin-bottom: 20px; }}
         .email-content, .post-content, .quote-content {{ margin-bottom: 20px; }}
         .date {{ color: #666; font-size: 0.9em; }}
         .category {{ font-weight: bold; color: #333; }}
+        .source-url {{ font-size: 0.9em; color: #1a0dab; margin-bottom: 16px; }}
         h1 {{ color: #2c3e50; }}
     </style>
 </head>
 <body>
+    <div class=\"source-url\">Source: {url}</div>
     {extracted_content}
 </body>
 </html>"""

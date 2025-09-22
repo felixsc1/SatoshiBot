@@ -12,6 +12,7 @@ import logging
 from urllib.parse import urljoin
 from typing import List, Dict, Any
 from langchain_core.documents import Document
+import json
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -210,6 +211,77 @@ class SatoshiDocumentIngestion:
         
         return vectorstore
     
+    def export_raw_documents(self, output_dir: str = "raw_documents") -> None:
+        """Export one raw .txt per HTML document and write source URL maps.
+
+        Creates folder structure:
+        raw_documents/
+          emails/
+            <same_base_filename>.txt
+            source_map.json
+          posts/
+            ...
+          quotes/
+            ...
+        """
+        html_files = self.get_html_files()
+        if not html_files:
+            logger.warning("No HTML files found to export.")
+            return
+
+        collections = ["emails", "posts", "quotes"]
+        # Ensure base and subdirectories exist
+        for collection in collections:
+            os.makedirs(os.path.join(output_dir, collection), exist_ok=True)
+
+        # Prepare per-collection source maps
+        source_maps: Dict[str, Dict[str, str]] = {c: {} for c in collections}
+
+        for filepath in html_files:
+            docs = self.load_single_document(filepath)
+            if not docs:
+                logger.warning(f"Skipping empty document: {filepath}")
+                continue
+
+            path = Path(filepath)
+            # Determine target collection from first doc metadata
+            collection = docs[0].metadata.get("collection", "")
+            if collection not in collections:
+                # Skip files that are not part of target collections
+                logger.info(f"Skipping non-target collection for {filepath}")
+                continue
+
+            # Compose single raw text per HTML file
+            combined_content = "\n\n".join(doc.page_content for doc in docs if doc.page_content)
+
+            # Determine output filename
+            output_filename = f"{path.stem}.txt"
+            output_path = os.path.join(output_dir, collection, output_filename)
+
+            # Write raw text
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(combined_content)
+
+            # Capture source URL (prefer the first doc that has it)
+            source_url = None
+            for doc in docs:
+                candidate = doc.metadata.get("source_url")
+                if candidate:
+                    source_url = candidate
+                    break
+
+            # Record mapping; if URL missing, store empty string
+            source_maps[collection][output_filename] = source_url or ""
+
+            logger.info(f"Exported raw: {output_path}")
+
+        # Write source_map.json per collection
+        for collection, mapping in source_maps.items():
+            map_path = os.path.join(output_dir, collection, "source_map.json")
+            with open(map_path, "w", encoding="utf-8") as f:
+                json.dump(mapping, f, ensure_ascii=False, indent=2)
+            logger.info(f"Wrote source map: {map_path} ({len(mapping)} entries)")
+
     def export_to_csv(self, chunks: List[Document], csv_path: str):
         import csv
         # Collect all possible metadata keys
@@ -283,23 +355,38 @@ class SatoshiDocumentIngestion:
         print("="*60)
 
 def main():
-    """Main function to run the ingestion"""
+    """Main function to run the ingestion or raw export"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Ingest Satoshi documents or export raw text.")
+    parser.add_argument("--raw-only", action="store_true", help="Skip chunking/embedding; export raw .txt files and source maps.")
+    parser.add_argument("--raw-output", type=str, default="raw_documents", help="Directory to write raw documents to.")
+    parser.add_argument("--vectorstore", type=str, default="satoshi_vectorstore", help="Output directory for FAISS vectorstore.")
+    parser.add_argument("--chunk-size", type=int, default=1000, help="Chunk size for splitting.")
+    parser.add_argument("--chunk-overlap", type=int, default=100, help="Chunk overlap for splitting.")
+    parser.add_argument("--embeddings-model", type=str, default="granite-embedding:30m", help="Ollama embeddings model name.")
+    args = parser.parse_args()
+
     # Initialize ingestion
     ingestion = SatoshiDocumentIngestion(
-        chunk_size=1000,  # Smaller chunks for better retrieval
-        chunk_overlap=100,
-        embeddings_model="granite-embedding:30m"  
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.chunk_overlap,
+        embeddings_model=args.embeddings_model  
     )
     
-    # Run ingestion
     try:
-        vectorstore = ingestion.run_ingestion()
-        print(f"\n✅ Ingestion completed successfully!")
-        print(f"Vectorstore saved to: satoshi_vectorstore")
-        print(f"You can now use this vectorstore for RAG queries.")
+        if args.raw_only:
+            ingestion.export_raw_documents(output_dir=args.raw_output)
+            print(f"\n✅ Raw export completed successfully!")
+            print(f"Raw documents saved to: {args.raw_output}")
+        else:
+            vectorstore = ingestion.run_ingestion(save_path=args.vectorstore)
+            print(f"\n✅ Ingestion completed successfully!")
+            print(f"Vectorstore saved to: {args.vectorstore}")
+            print(f"You can now use this vectorstore for RAG queries.")
         
     except Exception as e:
-        print(f"❌ Ingestion failed: {str(e)}")
+        print(f"❌ Operation failed: {str(e)}")
         raise
 
 if __name__ == "__main__":
