@@ -33,7 +33,7 @@ class SatoshiDocumentIngestion:
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             length_function=len,
-            separators=["\n\n", "\n", ". ", " ", ""]
+            separators=["\n\n", ". ", " ", ""]
         )
         
     def get_html_files(self) -> List[str]:
@@ -115,20 +115,32 @@ class SatoshiDocumentIngestion:
             # Enhance documents with metadata
             enhanced_docs = []
             for doc in documents:
+                # Strip leading/trailing whitespace from content
+                doc.page_content = doc.page_content.strip()
+                
+                # Split content into lines for metadata extraction
+                lines = doc.page_content.split('\n')
+                
                 # Combine existing metadata with file metadata
                 combined_metadata = {**doc.metadata, **file_metadata}
                 
                 # Add source URL if available in the document
                 if 'Source:' in doc.page_content:
-                    lines = doc.page_content.split('\n')
                     for line in lines:
                         if line.strip().startswith('Source:'):
-                            # Extract URL from "Source: <url>" pattern
+                            # Extract URL from "Source: &lt;url&gt;" pattern
                             if 'https://satoshi.nakamotoinstitute.org' in line:
                                 start = line.find('https://satoshi.nakamotoinstitute.org')
                                 end = line.find(' ', start) if line.find(' ', start) != -1 else len(line)
                                 combined_metadata['source_url'] = line[start:end]
                             break
+                
+                # Extract date if present
+                for line in lines:
+                    if line.strip().startswith('Date: |'):
+                        date_part = line.split('Date: |', 1)[1].strip()
+                        combined_metadata['date'] = date_part
+                        break
                 
                 enhanced_doc = Document(
                     page_content=doc.page_content,
@@ -163,6 +175,8 @@ class SatoshiDocumentIngestion:
         
         for doc in documents:
             if len(doc.page_content) <= self.chunk_size:
+                doc.metadata['chunk_index'] = 0
+                doc.metadata['total_chunks'] = 1
                 short_docs.append(doc)
             else:
                 long_docs.append(doc)
@@ -170,7 +184,12 @@ class SatoshiDocumentIngestion:
         # Split long documents
         split_docs = []
         if long_docs:
-            split_docs = self.text_splitter.split_documents(long_docs)
+            for doc in long_docs:
+                splits = self.text_splitter.split_documents([doc])
+                for i, split in enumerate(splits):
+                    split.metadata['chunk_index'] = i
+                    split.metadata['total_chunks'] = len(splits)
+                split_docs.extend(splits)
         
         # Combine short and split documents
         all_chunks = short_docs + split_docs
@@ -191,6 +210,25 @@ class SatoshiDocumentIngestion:
         
         return vectorstore
     
+    def export_to_csv(self, chunks: List[Document], csv_path: str):
+        import csv
+        # Collect all possible metadata keys
+        all_keys = set()
+        for chunk in chunks:
+            all_keys.update(chunk.metadata.keys())
+        # Sort keys for consistent order
+        metadata_keys = sorted(all_keys)
+        # CSV columns: content + metadata_keys
+        columns = ['content'] + metadata_keys
+        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=columns)
+            writer.writeheader()
+            for chunk in chunks:
+                row = {'content': chunk.page_content}
+                row.update(chunk.metadata)
+                writer.writerow(row)
+        logger.info(f"Exported {len(chunks)} rows to {csv_path}")
+
     def run_ingestion(self, save_path: str = "satoshi_vectorstore") -> FAISS:
         """Run the complete ingestion pipeline"""
         logger.info("Starting Satoshi document ingestion...")
@@ -203,6 +241,9 @@ class SatoshiDocumentIngestion:
         
         # Split documents
         chunks = self.split_documents(documents)
+        
+        # Export to CSV
+        self.export_to_csv(chunks, "nakamotoinstitute_files/satoshi.csv")
         
         # Create vectorstore
         vectorstore = self.create_vectorstore(chunks, save_path)
@@ -245,7 +286,7 @@ def main():
     """Main function to run the ingestion"""
     # Initialize ingestion
     ingestion = SatoshiDocumentIngestion(
-        chunk_size=800,  # Smaller chunks for better retrieval
+        chunk_size=1000,  # Smaller chunks for better retrieval
         chunk_overlap=100,
         embeddings_model="granite-embedding:30m"  
     )

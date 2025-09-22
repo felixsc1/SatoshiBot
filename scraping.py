@@ -241,7 +241,6 @@ class SatoshiScraper:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extracted Content</title>
     <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
         .email-header, .post-header {{ background-color: #f5f5f5; padding: 10px; margin-bottom: 20px; }}
@@ -252,7 +251,6 @@ class SatoshiScraper:
     </style>
 </head>
 <body>
-    <div class="source-url">Source: <a href="{url}">{url}</a></div>
     {extracted_content}
 </body>
 </html>"""
